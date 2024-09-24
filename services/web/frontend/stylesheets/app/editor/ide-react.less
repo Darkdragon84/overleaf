@@ -1,5 +1,6 @@
 #ide-root {
-  height: 100vh;
+  height: 100vh; /* for backwards compatibility */
+  height: 100dvh; /* needed for mobile devices */
 
   .global-alerts {
     position: absolute;
@@ -26,6 +27,7 @@
 }
 
 .ide-react-main {
+  //migrated to SCSS
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -38,6 +40,7 @@
 }
 
 .ide-react-body {
+  //migrated to SCSS
   flex-grow: 1;
   background-color: @pdf-bg;
   overflow-y: hidden;
@@ -56,6 +59,8 @@
   .custom-toggler {
     padding: 0;
     border-width: 0;
+    // Override react-resizable-panels which sets a global * { cursor: ew-resize }
+    cursor: pointer !important;
   }
 
   &.horizontal-resize-handle-enabled {
@@ -88,6 +93,11 @@
     margin: 0;
     // Ensure that SyncTex controls appear in front of PDF viewer controls and logs pane
     z-index: 12;
+
+    & .synctex-control .synctex-control-icon {
+      // Override react-resizable-panels which sets a global * { cursor: ew-resize }
+      cursor: pointer !important;
+    }
   }
 }
 
@@ -117,6 +127,7 @@
 }
 
 .ide-react-editor-sidebar {
+  //migrated to SCSS
   height: 100%;
   background-color: @file-tree-bg;
   color: var(--neutral-20);
@@ -129,6 +140,7 @@
 }
 
 .ide-react-file-tree-panel {
+  //migrated to SCSS
   display: flex;
   flex-direction: column;
 
@@ -146,6 +158,7 @@
 // Ensure an element with class "full-size", such as the binary file view, stays within the bounds of the panel
 .ide-react-panel {
   position: relative;
+  container-type: size;
 }
 
 // Styles for placeholder elements that will eventually be replaced

@@ -2,7 +2,7 @@ const SandboxedModule = require('sandboxed-module')
 const path = require('path')
 const sinon = require('sinon')
 const { expect } = require('chai')
-const { ObjectId } = require('mongodb')
+const { ObjectId } = require('mongodb-legacy')
 const Errors = require('../../../../app/src/Features/Errors/Errors')
 
 const MODULE_PATH = path.join(
@@ -102,8 +102,12 @@ describe('ProjectListController', function () {
     }
     this.SplitTestHandler = {
       promises: {
-        sessionMaintenance: sinon.stub().resolves(),
         getAssignment: sinon.stub().resolves({ variant: 'default' }),
+      },
+    }
+    this.SplitTestSessionHandler = {
+      promises: {
+        sessionMaintenance: sinon.stub().resolves(),
       },
     }
     this.SubscriptionViewModelBuilder = {
@@ -137,10 +141,11 @@ describe('ProjectListController', function () {
 
     this.ProjectListController = SandboxedModule.require(MODULE_PATH, {
       requires: {
-        mongodb: { ObjectId },
+        'mongodb-legacy': { ObjectId },
         '@overleaf/settings': this.settings,
         '@overleaf/metrics': this.Metrics,
         '../SplitTests/SplitTestHandler': this.SplitTestHandler,
+        '../SplitTests/SplitTestSessionHandler': this.SplitTestSessionHandler,
         '../User/UserController': this.UserController,
         './ProjectHelper': this.ProjectHelper,
         '../Subscription/LimitationsManager': this.LimitationsManager,
@@ -223,7 +228,7 @@ describe('ProjectListController', function () {
     it('should invoke the session maintenance', function (done) {
       this.Features.hasFeature.withArgs('saas').returns(true)
       this.res.render = () => {
-        this.SplitTestHandler.promises.sessionMaintenance.should.have.been.calledWith(
+        this.SplitTestSessionHandler.promises.sessionMaintenance.should.have.been.calledWith(
           this.req,
           this.user
         )
@@ -357,7 +362,7 @@ describe('ProjectListController', function () {
         this.institutionName = 'Overleaf'
         this.Features.hasFeature.withArgs('saml').returns(true)
         this.Features.hasFeature.withArgs('affiliations').returns(true)
-        this.Features.hasFeature.withArgs('overleaf-integration').returns(true)
+        this.Features.hasFeature.withArgs('saas').returns(true)
         done()
       })
       it('should show institution SSO available notification for confirmed domains', function () {

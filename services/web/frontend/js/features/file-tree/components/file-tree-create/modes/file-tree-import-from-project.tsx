@@ -20,18 +20,19 @@ import ErrorMessage from '../error-message'
 import * as eventTracking from '../../../../../infrastructure/event-tracking'
 import { File } from '@/features/source-editor/utils/file'
 import { Project } from '../../../../../../../types/project'
+import getMeta from '@/utils/meta'
 
 export default function FileTreeImportFromProject() {
   const { t } = useTranslation()
 
   const { hasLinkedProjectFileFeature, hasLinkedProjectOutputFileFeature } =
-    window.ExposedSettings
+    getMeta('ol-ExposedSettings')
   const canSwitchOutputFilesMode =
     hasLinkedProjectFileFeature && hasLinkedProjectOutputFileFeature
 
   const { name, setName, validName } = useFileTreeCreateName()
   const { setValid } = useFileTreeCreateForm()
-  const { error, finishCreatingLinkedFile } = useFileTreeActionable()
+  const { error, finishCreatingLinkedFile, inFlight } = useFileTreeActionable()
 
   const [selectedProject, setSelectedProject] = useState<Project>()
   const [selectedProjectEntity, setSelectedProjectEntity] = useState<Entity>()
@@ -95,7 +96,10 @@ export default function FileTreeImportFromProject() {
   // form submission: create a linked file with this name, from this entity or output file
   const handleSubmit: FormEventHandler = event => {
     event.preventDefault()
-    eventTracking.sendMB('new-file-created', { method: 'project' })
+    eventTracking.sendMB('new-file-created', {
+      method: 'project',
+      extension: name.split('.').length > 1 ? name.split('.').pop() : '',
+    })
 
     if (isOutputFilesMode) {
       finishCreatingLinkedFile({
@@ -165,6 +169,7 @@ export default function FileTreeImportFromProject() {
         }}
         placeholder="example.tex"
         error={error}
+        inFlight={inFlight}
       />
 
       {error && <ErrorMessage error={error} />}

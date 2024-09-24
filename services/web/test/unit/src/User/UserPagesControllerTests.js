@@ -58,7 +58,7 @@ describe('UserPagesController', function () {
       subscribed: sinon.stub().yields(),
     }
     this.AuthenticationController = {
-      _getRedirectFromSession: sinon.stub(),
+      getRedirectFromSession: sinon.stub(),
       setRedirectInSession: sinon.stub(),
     }
     this.Features = {
@@ -119,8 +119,10 @@ describe('UserPagesController', function () {
     })
 
     it('should set sharedProjectData', function (done) {
-      this.req.query.project_name = 'myProject'
-      this.req.query.user_first_name = 'user_first_name_here'
+      this.req.session.sharedProjectData = {
+        project_name: 'myProject',
+        user_first_name: 'user_first_name_here',
+      }
 
       this.res.callback = () => {
         this.res.renderedVariables.sharedProjectData.project_name.should.equal(
@@ -169,7 +171,7 @@ describe('UserPagesController', function () {
 
     describe('when an explicit redirect is set via query string', function () {
       beforeEach(function () {
-        this.AuthenticationController._getRedirectFromSession = sinon
+        this.AuthenticationController.getRedirectFromSession = sinon
           .stub()
           .returns(null)
         this.AuthenticationController.setRedirectInSession = sinon.stub()
@@ -365,33 +367,19 @@ describe('UserPagesController', function () {
         admin_id: {
           email: 'admin.email@ssolove.com',
         },
+        linked: true,
       }
       const group2 = {
         _id: 'def456def456',
         admin_id: {
           email: 'someone.else@noname.co.uk',
         },
+        linked: false,
       }
-      const group3 = {
-        _id: 'fff999fff999',
-        admin_id: {
-          email: 'foo@bar.baz',
-        },
-      }
-      this.SubscriptionLocator.promises.getMemberSubscriptions.resolves([
-        group1,
-        group2,
-        group3,
-      ])
+
       this.Modules.promises.hooks.fire
-        .withArgs('hasGroupSSOEnabled', group1)
-        .resolves([true])
-      this.Modules.promises.hooks.fire
-        .withArgs('hasGroupSSOEnabled', group2)
-        .resolves([true])
-      this.Modules.promises.hooks.fire
-        .withArgs('hasGroupSSOEnabled', group3)
-        .resolves([false])
+        .withArgs('getUserGroupsSSOEnrollmentStatus')
+        .resolves([[group1, group2]])
 
       this.res.callback = () => {
         expect(

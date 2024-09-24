@@ -64,43 +64,22 @@ async function settingsPage(req, res) {
   const user = await UserGetter.promises.getUser(userId)
   if (!user) {
     // The user has just deleted their account.
-    return UserSessionsManager.revokeAllUserSessions({ _id: userId }, [], () =>
-      res.redirect('/')
+    return UserSessionsManager.removeSessionsFromRedis(
+      { _id: userId },
+      null,
+      () => res.redirect('/')
     )
   }
-
-  const showPersonalAccessToken =
-    !Features.hasFeature('saas') || req.query?.personal_access_token === 'true'
-
-  // if not already enabled, use a split test to determine whether to offer personal access tokens
-  let optionalPersonalAccessToken = false
-  if (!showPersonalAccessToken) {
-    const { variant } = await SplitTestHandler.promises.getAssignment(
-      req,
-      res,
-      'personal-access-token'
-    )
-    optionalPersonalAccessToken = variant === 'enabled' // `?personal-access-token=enabled`
-  }
-
-  // getAssignment sets res.locals, which will pass to the splitTest context
-  await SplitTestHandler.promises.getAssignment(
-    req,
-    res,
-    'writefull-oauth-promotion'
-  )
 
   let personalAccessTokens
-  if (showPersonalAccessToken || optionalPersonalAccessToken) {
-    try {
-      // require this here because module may not be included in some versions
-      const PersonalAccessTokenManager = require('../../../../modules/oauth2-server/app/src/OAuthPersonalAccessTokenManager')
-      personalAccessTokens = await PersonalAccessTokenManager.listTokens(
-        user._id
-      )
-    } catch (error) {
-      logger.error(OError.tag(error))
-    }
+  try {
+    const results = await Modules.promises.hooks.fire(
+      'listPersonalAccessTokens',
+      user._id
+    )
+    personalAccessTokens = results?.[0] ?? []
+  } catch (error) {
+    logger.error(OError.tag(error))
   }
 
   let currentManagedUserAdminEmail
@@ -111,32 +90,36 @@ async function settingsPage(req, res) {
     logger.error({ err }, 'error getting subscription admin email')
   }
 
-  const memberOfSSOEnabledGroups = []
+  let memberOfSSOEnabledGroups = []
   try {
-    const memberOfGroups =
-      await SubscriptionLocator.promises.getMemberSubscriptions(user._id)
-    for (const group of memberOfGroups) {
-      const hasSSOEnabled = (
-        await Modules.promises.hooks.fire('hasGroupSSOEnabled', group)
-      )?.[0]
-      if (hasSSOEnabled) {
-        const groupId = group._id.toString()
-        memberOfSSOEnabledGroups.push({
-          groupId,
-          linked: user.enrollment?.sso?.some(
-            sso => sso.groupId.toString() === groupId
-          ),
-          groupName: group.teamName,
-          adminEmail: group.admin_id?.email,
-        })
+    memberOfSSOEnabledGroups =
+      (
+        await Modules.promises.hooks.fire(
+          'getUserGroupsSSOEnrollmentStatus',
+          user._id,
+          { teamName: 1 },
+          ['email']
+        )
+      )?.[0] || []
+    memberOfSSOEnabledGroups = memberOfSSOEnabledGroups.map(group => {
+      return {
+        groupId: group._id.toString(),
+        linked: group.linked,
+        groupName: group.teamName,
+        adminEmail: group.admin_id?.email,
       }
-    }
+    })
   } catch (error) {
     logger.error(
       { err: error },
       'error fetching groups with Group SSO enabled the user may be member of'
     )
   }
+
+  // Get the user's assignment for this page's Bootstrap 5 split test, which
+  // populates splitTestVariants with a value for the split test name and allows
+  // Pug to read it
+  await SplitTestHandler.promises.getAssignment(req, res, 'bootstrap-5')
 
   res.render('user/settings', {
     title: 'account_settings',
@@ -183,8 +166,6 @@ async function settingsPage(req, res) {
     ssoErrorMessage,
     thirdPartyIds: UserPagesController._restructureThirdPartyIds(user),
     projectSyncSuccessMessage,
-    showPersonalAccessToken,
-    optionalPersonalAccessToken,
     personalAccessTokens,
     emailAddressLimit: Settings.emailAddressLimit,
     isManagedAccount: !!req.managedBy,
@@ -196,12 +177,20 @@ async function settingsPage(req, res) {
   })
 }
 
+async function accountSuspended(req, res) {
+  if (SessionManager.isUserLoggedIn(req.session)) {
+    return res.redirect('/project')
+  }
+  res.render('user/accountSuspended', {
+    title: 'your_account_is_suspended',
+  })
+}
+
 const UserPagesController = {
+  accountSuspended: expressify(accountSuspended),
+
   registerPage(req, res) {
-    const sharedProjectData = {
-      project_name: req.query.project_name,
-      user_first_name: req.query.user_first_name,
-    }
+    const sharedProjectData = req.session.sharedProjectData || {}
 
     const newTemplateData = {}
     if (req.session.templateData != null) {
@@ -221,7 +210,7 @@ const UserPagesController = {
     // such as being sent from the editor to /login, then set the redirect explicitly
     if (
       req.query.redir != null &&
-      AuthenticationController._getRedirectFromSession(req) == null
+      AuthenticationController.getRedirectFromSession(req) == null
     ) {
       AuthenticationController.setRedirectInSession(req, req.query.redir)
     }
@@ -297,6 +286,10 @@ const UserPagesController = {
         })
       }
     )
+  },
+
+  compromisedPasswordPage(_, res) {
+    res.render('user/compromised_password')
   },
 
   _restructureThirdPartyIds(user) {

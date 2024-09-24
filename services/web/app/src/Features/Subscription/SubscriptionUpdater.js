@@ -47,9 +47,8 @@ async function syncSubscription(
   adminUserId,
   requesterData = {}
 ) {
-  let subscription = await SubscriptionLocator.promises.getUsersSubscription(
-    adminUserId
-  )
+  let subscription =
+    await SubscriptionLocator.promises.getUsersSubscription(adminUserId)
   if (subscription == null) {
     subscription = await _createNewSubscription(adminUserId)
   }
@@ -187,7 +186,7 @@ async function restoreSubscription(subscriptionId) {
   // 4. notify analytics that members rejoined the subscription
   await _sendSubscriptionEventForAllMembers(
     subscriptionId,
-    'group-subscription-left'
+    'group-subscription-joined'
   )
 }
 
@@ -356,7 +355,7 @@ async function _sendUserGroupPlanCodeUserProperty(userId) {
         bestFeatures = plan.features
       }
     }
-    AnalyticsManager.setUserPropertyForUser(
+    AnalyticsManager.setUserPropertyForUserInBackground(
       userId,
       'group-subscription-plan-code',
       bestPlanCode
@@ -377,7 +376,7 @@ async function _sendSubscriptionEvent(userId, subscriptionId, event) {
   if (!subscription || !subscription.groupPlan) {
     return
   }
-  AnalyticsManager.recordEventForUser(userId, event, {
+  AnalyticsManager.recordEventForUserInBackground(userId, event, {
     groupId: subscription._id.toString(),
     subscriptionId: subscription.recurlySubscription_id,
   })
@@ -398,7 +397,7 @@ async function _sendSubscriptionEventForAllMembers(subscriptionId, event) {
   const userIds = (subscription.member_ids || []).filter(Boolean)
   for (const userId of userIds) {
     if (userId) {
-      AnalyticsManager.recordEventForUser(userId, event, {
+      AnalyticsManager.recordEventForUserInBackground(userId, event, {
         groupId: subscription._id.toString(),
         subscriptionId: subscription.recurlySubscription_id,
       })

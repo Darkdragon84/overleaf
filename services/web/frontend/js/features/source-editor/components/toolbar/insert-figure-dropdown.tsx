@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { emitToolbarEvent } from '../../extensions/toolbar/utils/analytics'
 import { useCodeMirrorViewContext } from '../codemirror-editor'
 import { insertFigure } from '../../extensions/toolbar/commands'
+import getMeta from '@/utils/meta'
 
 export const InsertFigureDropdown = memo(function InsertFigureDropdown() {
   const { t } = useTranslation()
@@ -16,7 +17,7 @@ export const InsertFigureDropdown = memo(function InsertFigureDropdown() {
       emitToolbarEvent(view, `toolbar-figure-modal-${sourceName}`)
       window.dispatchEvent(
         new CustomEvent('figure-modal:open', {
-          detail: source,
+          detail: { source },
         })
       )
     },
@@ -26,7 +27,7 @@ export const InsertFigureDropdown = memo(function InsertFigureDropdown() {
     hasLinkedProjectFileFeature,
     hasLinkedProjectOutputFileFeature,
     hasLinkUrlFeature,
-  } = window.ExposedSettings
+  } = getMeta('ol-ExposedSettings')
   return (
     <ToolbarButtonMenu
       id="toolbar-figure"
@@ -39,14 +40,16 @@ export const InsertFigureDropdown = memo(function InsertFigureDropdown() {
           openFigureModal(FigureModalSource.FILE_UPLOAD, 'file-upload')
         }
       >
-        <Icon type="upload" fw /> Upload from computer
+        <Icon type="upload" fw />
+        {t('upload_from_computer')}
       </ListGroupItem>
       <ListGroupItem
         onClick={() =>
           openFigureModal(FigureModalSource.FILE_TREE, 'current-project')
         }
       >
-        <Icon type="archive" fw /> From project files
+        <Icon type="archive" fw />
+        {t('from_project_files')}
       </ListGroupItem>
       {(hasLinkedProjectFileFeature || hasLinkedProjectOutputFileFeature) && (
         <ListGroupItem
@@ -54,7 +57,8 @@ export const InsertFigureDropdown = memo(function InsertFigureDropdown() {
             openFigureModal(FigureModalSource.OTHER_PROJECT, 'other-project')
           }
         >
-          <Icon type="folder-open" fw /> From another project
+          <Icon type="folder-open" fw />
+          {t('from_another_project')}
         </ListGroupItem>
       )}
       {hasLinkUrlFeature && (
@@ -63,7 +67,8 @@ export const InsertFigureDropdown = memo(function InsertFigureDropdown() {
             openFigureModal(FigureModalSource.FROM_URL, 'from-url')
           }
         >
-          <Icon type="globe" fw /> From URL
+          <Icon type="globe" fw />
+          {t('from_url')}
         </ListGroupItem>
       )}
     </ToolbarButtonMenu>

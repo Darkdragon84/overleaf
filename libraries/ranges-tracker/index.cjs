@@ -1,4 +1,3 @@
-// @ts-check
 /**
  * The purpose of this class is to track a set of inserts and deletes to a document, like
  * track changes in Word. We store these as a set of ShareJs style ranges:
@@ -767,6 +766,16 @@ class RangesTracker {
 
   getDirtyState() {
     return this._dirtyState
+  }
+
+  getTrackedDeletesLength() {
+    let length = 0
+    for (const change of this.changes) {
+      if (change.op.d != null) {
+        length += change.op.d.length
+      }
+    }
+    return length
   }
 
   _markAsDirty(object, type, action) {

@@ -66,9 +66,8 @@ async function viewInvite(req, res, next) {
   const { token } = req.params
   const userId = SessionManager.getLoggedInUserId(req.session)
 
-  const { invite, subscription } = await TeamInvitesHandler.promises.getInvite(
-    token
-  )
+  const { invite, subscription } =
+    await TeamInvitesHandler.promises.getInvite(token)
   if (!invite) {
     return ErrorController.notFound(req, res)
   }
@@ -91,6 +90,7 @@ async function viewInvite(req, res, next) {
 
     if (subscription?.groupPolicy) {
       if (!subscription.populated('groupPolicy')) {
+        // eslint-disable-next-line no-restricted-syntax
         await subscription.populate('groupPolicy')
       }
 
@@ -149,7 +149,6 @@ async function viewInvite(req, res, next) {
         inviterName: invite.inviterName,
         inviteToken: invite.token,
         hasIndividualRecurlySubscription,
-        appName: settings.appName,
         expired: req.query.expired,
         userRestrictions: Array.from(req.userRestrictions || []),
         currentManagedUserAdminEmail,

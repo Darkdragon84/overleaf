@@ -1,32 +1,5 @@
-const fs = require('fs')
 const Path = require('path')
 const { merge } = require('@overleaf/settings/merge')
-
-// Automatically detect module imports that are included in this version of the application (SaaS, Server-CE, Server Pro).
-// E.g. during a Server-CE build, we will not find imports for proprietary modules.
-//
-// Restart webpack after adding/removing modules.
-const MODULES_PATH = Path.join(__dirname, '../modules')
-const entryPointsIde = []
-const entryPointsMain = []
-fs.readdirSync(MODULES_PATH).forEach(module => {
-  const entryPathIde = Path.join(
-    MODULES_PATH,
-    module,
-    '/frontend/js/ide/index.js'
-  )
-  if (fs.existsSync(entryPathIde)) {
-    entryPointsIde.push(entryPathIde)
-  }
-  const entryPathMain = Path.join(
-    MODULES_PATH,
-    module,
-    '/frontend/js/main/index.js'
-  )
-  if (fs.existsSync(entryPathMain)) {
-    entryPointsMain.push(entryPathMain)
-  }
-})
 
 let defaultFeatures, siteUrl
 
@@ -42,8 +15,6 @@ const httpAuthUsers = {}
 if (httpAuthUser && httpAuthPass) {
   httpAuthUsers[httpAuthUser] = httpAuthPass
 }
-
-const sessionSecret = process.env.SESSION_SECRET || 'secret-please-change'
 
 const intFromEnv = function (name, defaultValue) {
   if (
@@ -105,6 +76,40 @@ const parseTextExtensions = function (extensions) {
   }
 }
 
+const httpPermissionsPolicy = {
+  blocked: [
+    'accelerometer',
+    'attribution-reporting',
+    'browsing-topics',
+    'camera',
+    'display-capture',
+    'encrypted-media',
+    'gamepad',
+    'geolocation',
+    'gyroscope',
+    'hid',
+    'identity-credentials-get',
+    'idle-detection',
+    'local-fonts',
+    'magnetometer',
+    'microphone',
+    'midi',
+    'otp-credentials',
+    'payment',
+    'picture-in-picture',
+    'screen-wake-lock',
+    'serial',
+    'storage-access',
+    'usb',
+    'window-management',
+    'xr-spatial-tracking',
+  ],
+  allowed: {
+    autoplay: 'self "https://videos.ctfassets.net"',
+    fullscreen: 'self',
+  },
+}
+
 module.exports = {
   env: 'server-ce',
 
@@ -140,7 +145,7 @@ module.exports = {
 
   redis: {
     web: {
-      host: process.env.REDIS_HOST || 'localhost',
+      host: process.env.REDIS_HOST || '127.0.0.1',
       port: process.env.REDIS_PORT || '6379',
       password: process.env.REDIS_PASSWORD || '',
       db: process.env.REDIS_DB,
@@ -151,36 +156,36 @@ module.exports = {
 
     // websessions:
     // 	cluster: [
-    // 		{host: 'localhost', port: 7000}
-    // 		{host: 'localhost', port: 7001}
-    // 		{host: 'localhost', port: 7002}
-    // 		{host: 'localhost', port: 7003}
-    // 		{host: 'localhost', port: 7004}
-    // 		{host: 'localhost', port: 7005}
+    // 		{host: '127.0.0.1', port: 7000}
+    // 		{host: '127.0.0.1', port: 7001}
+    // 		{host: '127.0.0.1', port: 7002}
+    // 		{host: '127.0.0.1', port: 7003}
+    // 		{host: '127.0.0.1', port: 7004}
+    // 		{host: '127.0.0.1', port: 7005}
     // 	]
 
     // ratelimiter:
     // 	cluster: [
-    // 		{host: 'localhost', port: 7000}
-    // 		{host: 'localhost', port: 7001}
-    // 		{host: 'localhost', port: 7002}
-    // 		{host: 'localhost', port: 7003}
-    // 		{host: 'localhost', port: 7004}
-    // 		{host: 'localhost', port: 7005}
+    // 		{host: '127.0.0.1', port: 7000}
+    // 		{host: '127.0.0.1', port: 7001}
+    // 		{host: '127.0.0.1', port: 7002}
+    // 		{host: '127.0.0.1', port: 7003}
+    // 		{host: '127.0.0.1', port: 7004}
+    // 		{host: '127.0.0.1', port: 7005}
     // 	]
 
     // cooldown:
     // 	cluster: [
-    // 		{host: 'localhost', port: 7000}
-    // 		{host: 'localhost', port: 7001}
-    // 		{host: 'localhost', port: 7002}
-    // 		{host: 'localhost', port: 7003}
-    // 		{host: 'localhost', port: 7004}
-    // 		{host: 'localhost', port: 7005}
+    // 		{host: '127.0.0.1', port: 7000}
+    // 		{host: '127.0.0.1', port: 7001}
+    // 		{host: '127.0.0.1', port: 7002}
+    // 		{host: '127.0.0.1', port: 7003}
+    // 		{host: '127.0.0.1', port: 7004}
+    // 		{host: '127.0.0.1', port: 7005}
     // 	]
 
     api: {
-      host: process.env.REDIS_HOST || 'localhost',
+      host: process.env.REDIS_HOST || '127.0.0.1',
       port: process.env.REDIS_PORT || '6379',
       password: process.env.REDIS_PASSWORD || '',
       maxRetriesPerRequest: parseInt(
@@ -198,7 +203,7 @@ module.exports = {
   internal: {
     web: {
       port: process.env.WEB_PORT || 3000,
-      host: process.env.LISTEN_ADDRESS || 'localhost',
+      host: process.env.LISTEN_ADDRESS || '127.0.0.1',
     },
   },
 
@@ -208,7 +213,7 @@ module.exports = {
   apis: {
     web: {
       url: `http://${
-        process.env.WEB_API_HOST || process.env.WEB_HOST || 'localhost'
+        process.env.WEB_API_HOST || process.env.WEB_HOST || '127.0.0.1'
       }:${process.env.WEB_API_PORT || process.env.WEB_PORT || 3000}`,
       user: httpAuthUser,
       pass: httpAuthPass,
@@ -217,46 +222,45 @@ module.exports = {
       url: `http://${
         process.env.DOCUPDATER_HOST ||
         process.env.DOCUMENT_UPDATER_HOST ||
-        'localhost'
+        '127.0.0.1'
       }:3003`,
     },
     spelling: {
-      url: `http://${process.env.SPELLING_HOST || 'localhost'}:3005`,
+      url: `http://${process.env.SPELLING_HOST || '127.0.0.1'}:3005`,
       host: process.env.SPELLING_HOST,
     },
     docstore: {
-      url: `http://${process.env.DOCSTORE_HOST || 'localhost'}:3016`,
-      pubUrl: `http://${process.env.DOCSTORE_HOST || 'localhost'}:3016`,
+      url: `http://${process.env.DOCSTORE_HOST || '127.0.0.1'}:3016`,
+      pubUrl: `http://${process.env.DOCSTORE_HOST || '127.0.0.1'}:3016`,
     },
     chat: {
-      internal_url: `http://${process.env.CHAT_HOST || 'localhost'}:3010`,
+      internal_url: `http://${process.env.CHAT_HOST || '127.0.0.1'}:3010`,
     },
     filestore: {
-      url: `http://${process.env.FILESTORE_HOST || 'localhost'}:3009`,
+      url: `http://${process.env.FILESTORE_HOST || '127.0.0.1'}:3009`,
     },
     clsi: {
-      url: `http://${process.env.CLSI_HOST || 'localhost'}:3013`,
+      url: `http://${process.env.CLSI_HOST || '127.0.0.1'}:3013`,
       // url: "http://#{process.env['CLSI_LB_HOST']}:3014"
       backendGroupName: undefined,
-      defaultBackendClass: process.env.CLSI_DEFAULT_BACKEND_CLASS || 'e2',
       submissionBackendClass:
         process.env.CLSI_SUBMISSION_BACKEND_CLASS || 'n2d',
     },
     project_history: {
       sendProjectStructureOps: true,
-      url: `http://${process.env.PROJECT_HISTORY_HOST || 'localhost'}:3054`,
+      url: `http://${process.env.PROJECT_HISTORY_HOST || '127.0.0.1'}:3054`,
     },
     realTime: {
-      url: `http://${process.env.REALTIME_HOST || 'localhost'}:3026`,
+      url: `http://${process.env.REALTIME_HOST || '127.0.0.1'}:3026`,
     },
     contacts: {
-      url: `http://${process.env.CONTACTS_HOST || 'localhost'}:3036`,
+      url: `http://${process.env.CONTACTS_HOST || '127.0.0.1'}:3036`,
     },
     notifications: {
-      url: `http://${process.env.NOTIFICATIONS_HOST || 'localhost'}:3042`,
+      url: `http://${process.env.NOTIFICATIONS_HOST || '127.0.0.1'}:3042`,
     },
     webpack: {
-      url: `http://${process.env.WEBPACK_HOST || 'localhost'}:3808`,
+      url: `http://${process.env.WEBPACK_HOST || '127.0.0.1'}:3808`,
     },
     wiki: {
       url: process.env.WIKI_URL || 'https://learn.sharelatex.com',
@@ -275,22 +279,25 @@ module.exports = {
     recurly: {},
   },
 
+  // Defines which features are allowed in the
+  // Permissions-Policy HTTP header
+  httpPermissions: httpPermissionsPolicy,
+  useHttpPermissionsPolicy: true,
+
   jwt: {
     key: process.env.OT_JWT_AUTH_KEY,
     algorithm: process.env.OT_JWT_AUTH_ALG || 'HS256',
   },
 
-  splitTest: {
-    devToolbar: {
-      enabled: false,
-    },
+  devToolbar: {
+    enabled: false,
   },
 
   splitTests: [],
 
   // Where your instance of Overleaf Community Edition/Server Pro can be found publicly. Used in emails
   // that are sent out, generated links, etc.
-  siteUrl: (siteUrl = process.env.PUBLIC_URL || 'http://localhost:3000'),
+  siteUrl: (siteUrl = process.env.PUBLIC_URL || 'http://127.0.0.1:3000'),
 
   lockManager: {
     lockTestInterval: intFromEnv('LOCK_MANAGER_LOCK_TEST_INTERVAL', 50),
@@ -326,7 +333,10 @@ module.exports = {
 
   robotsNoindex: process.env.ROBOTS_NOINDEX === 'true' || false,
 
-  maxEntitiesPerProject: 2000,
+  maxEntitiesPerProject: parseInt(
+    process.env.MAX_ENTITIES_PER_PROJECT || '2000',
+    10
+  ),
 
   projectUploadTimeout: parseInt(
     process.env.PROJECT_UPLOAD_TIMEOUT || '120000',
@@ -345,7 +355,9 @@ module.exports = {
   // Security
   // --------
   security: {
-    sessionSecret,
+    sessionSecret: process.env.SESSION_SECRET,
+    sessionSecretUpcoming: process.env.SESSION_SECRET_UPCOMING,
+    sessionSecretFallback: process.env.SESSION_SECRET_FALLBACK,
     bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS, 10) || 12,
   }, // number of rounds used to hash user passwords (raised to power 2)
 
@@ -371,7 +383,6 @@ module.exports = {
     compileTimeout: 180,
     compileGroup: 'standard',
     references: true,
-    templates: true,
     trackChanges: true,
   }),
 
@@ -716,6 +727,10 @@ module.exports = {
       everyone: process.env.RATE_LIMIT_AUTO_COMPILE_EVERYONE || 100,
       standard: process.env.RATE_LIMIT_AUTO_COMPILE_STANDARD || 25,
     },
+    login: {
+      ip: { points: 20, subnetPoints: 200, duration: 60 },
+      email: { points: 10, duration: 120 },
+    },
   },
 
   analytics: {
@@ -811,6 +826,7 @@ module.exports = {
           h4: ['class', 'id'],
           h5: ['class', 'id'],
           h6: ['class', 'id'],
+          p: ['class'],
           col: ['width'],
           figure: ['class', 'id', 'style'],
           figcaption: ['class', 'id', 'style'],
@@ -858,15 +874,21 @@ module.exports = {
     tprFileViewRefreshError: [],
     tprFileViewRefreshButton: [],
     tprFileViewNotOriginalImporter: [],
+    newFilePromotions: [],
     contactUsModal: [],
     editorToolbarButtons: [],
     sourceEditorExtensions: [],
     sourceEditorComponents: [],
+    pdfLogEntryComponents: [],
+    pdfLogEntriesComponents: [],
+    pdfPreviewPromotions: [],
+    diagnosticActions: [],
     sourceEditorCompletionSources: [],
     sourceEditorSymbolPalette: [],
     sourceEditorToolbarComponents: [],
-    writefullEditorPromotion: [],
+    editorPromotions: [],
     langFeedbackLinkingWidgets: [],
+    labsExperiments: [],
     integrationLinkingWidgets: [],
     referenceLinkingWidgets: [],
     importProjectFromGithubModalWrapper: [],
@@ -875,11 +897,12 @@ module.exports = {
     editorLeftMenuManageTemplate: [],
     oauth2Server: [],
     managedGroupSubscriptionEnrollmentNotification: [],
+    userNotifications: [],
     managedGroupEnrollmentInvite: [],
     ssoCertificateInfo: [],
-    // See comment at the definition of these variables.
-    entryPointsIde,
-    entryPointsMain,
+    v1ImportDataScreen: [],
+    snapshotUtils: [],
+    offlineModeToolbarButtons: [],
   },
 
   moduleImportSequence: [
@@ -888,13 +911,14 @@ module.exports = {
     'server-ce-scripts',
     'user-activate',
   ],
+  viewIncludes: {},
 
   csp: {
     enabled: process.env.CSP_ENABLED === 'true',
     reportOnly: process.env.CSP_REPORT_ONLY === 'true',
     reportPercentage: parseFloat(process.env.CSP_REPORT_PERCENTAGE) || 0,
     reportUri: process.env.CSP_REPORT_URI,
-    exclude: ['app/views/project/editor'],
+    exclude: [],
   },
 
   unsupportedBrowsers: {

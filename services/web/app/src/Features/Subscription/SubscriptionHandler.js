@@ -8,6 +8,7 @@ const EmailHandler = require('../Email/EmailHandler')
 const PlansLocator = require('./PlansLocator')
 const SubscriptionHelper = require('./SubscriptionHelper')
 const { callbackify } = require('@overleaf/promise-utils')
+const UserUpdater = require('../User/UserUpdater')
 
 async function validateNoSubscriptionInRecurly(userId) {
   let subscriptions =
@@ -41,6 +42,14 @@ async function createSubscription(user, subscriptionDetails, recurlyTokenIds) {
     subscriptionDetails,
     recurlyTokenIds
   )
+
+  if (recurlySubscription.trial_started_at) {
+    const trialStartedAt = new Date(recurlySubscription.trial_started_at)
+    await UserUpdater.promises.updateUser(
+      { _id: user._id, lastTrial: { $not: { $gt: trialStartedAt } } },
+      { $set: { lastTrial: trialStartedAt } }
+    )
+  }
 
   await SubscriptionUpdater.promises.syncSubscription(
     recurlySubscription,
@@ -207,9 +216,8 @@ async function syncSubscription(recurlySubscription, requesterData) {
 // This is used because Recurly doesn't always attempt collection of paast due
 // invoices after Paypal billing info were updated.
 async function attemptPaypalInvoiceCollection(recurlyAccountCode) {
-  const billingInfo = await RecurlyWrapper.promises.getBillingInfo(
-    recurlyAccountCode
-  )
+  const billingInfo =
+    await RecurlyWrapper.promises.getBillingInfo(recurlyAccountCode)
 
   if (!billingInfo.paypal_billing_agreement_id) {
     // this is not a Paypal user

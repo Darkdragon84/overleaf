@@ -1,5 +1,5 @@
 const { expect } = require('chai')
-const { ObjectId } = require('mongodb')
+const { ObjectId } = require('mongodb-legacy')
 const Path = require('path')
 const fs = require('fs')
 
@@ -20,9 +20,9 @@ before(function () {
 describe('ProjectStructureChanges', function () {
   let owner
 
-  beforeEach(function (done) {
+  beforeEach(async function () {
     owner = new User()
-    owner.login(done)
+    await owner.login()
   })
 
   async function createExampleProject(owner) {

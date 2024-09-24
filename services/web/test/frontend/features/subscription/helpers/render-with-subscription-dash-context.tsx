@@ -3,6 +3,7 @@ import _ from 'lodash'
 import { SubscriptionDashboardProvider } from '../../../../../frontend/js/features/subscription/context/subscription-dashboard-context'
 import { groupPriceByUsageTypeAndSize, plans } from '../fixtures/plans'
 import fetchMock from 'fetch-mock'
+import { SplitTestProvider } from '@/shared/context/split-test-context'
 
 export function renderWithSubscriptionDashContext(
   component: React.ReactElement,
@@ -21,10 +22,11 @@ export function renderWithSubscriptionDashContext(
   }: {
     children: React.ReactNode
   }) => (
-    <SubscriptionDashboardProvider>{children}</SubscriptionDashboardProvider>
+    <SplitTestProvider>
+      <SubscriptionDashboardProvider>{children}</SubscriptionDashboardProvider>
+    </SplitTestProvider>
   )
 
-  window.metaAttributesCache = new Map()
   options?.metaTags?.forEach(tag =>
     window.metaAttributesCache.set(tag.name, tag.value)
   )
@@ -89,6 +91,5 @@ export function renderWithSubscriptionDashContext(
 export function cleanUpContext() {
   // @ts-ignore
   delete global.recurly
-  window.metaAttributesCache = new Map()
   fetchMock.reset()
 }

@@ -14,11 +14,13 @@ DOCKER_COMPOSE := BUILD_NUMBER=$(BUILD_NUMBER) \
 	MOCHA_GREP=${MOCHA_GREP} \
 	docker compose ${DOCKER_COMPOSE_FLAGS}
 
+COMPOSE_PROJECT_NAME_TEST_ACCEPTANCE ?= test_acceptance_$(BUILD_DIR_NAME)
 DOCKER_COMPOSE_TEST_ACCEPTANCE = \
-	COMPOSE_PROJECT_NAME=test_acceptance_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE)
+	COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_NAME_TEST_ACCEPTANCE) $(DOCKER_COMPOSE)
 
+COMPOSE_PROJECT_NAME_TEST_UNIT ?= test_unit_$(BUILD_DIR_NAME)
 DOCKER_COMPOSE_TEST_UNIT = \
-	COMPOSE_PROJECT_NAME=test_unit_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE)
+	COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_NAME_TEST_UNIT) $(DOCKER_COMPOSE)
 
 clean:
 	-docker rmi ci/$(PROJECT_NAME):$(BRANCH_NAME)-$(BUILD_NUMBER)
@@ -31,10 +33,10 @@ HERE=$(shell pwd)
 MONOREPO=$(shell cd ../../ && pwd)
 # Run the linting commands in the scope of the monorepo.
 # Eslint and prettier (plus some configs) are on the root.
-RUN_LINTING = docker run --rm -v $(MONOREPO):$(MONOREPO) -w $(HERE) node:18.19.1 npm run --silent
+RUN_LINTING = docker run --rm -v $(MONOREPO):$(MONOREPO) -w $(HERE) node:18.20.2 npm run --silent
 
 # Same but from the top of the monorepo
-RUN_LINTING_MONOREPO = docker run --rm -v $(MONOREPO):$(MONOREPO) -w $(MONOREPO) node:18.19.1 npm run --silent
+RUN_LINTING_MONOREPO = docker run --rm -v $(MONOREPO):$(MONOREPO) -w $(MONOREPO) node:18.20.2 npm run --silent
 
 format:
 	$(RUN_LINTING) format
@@ -48,10 +50,7 @@ lint:
 lint_fix:
 	$(RUN_LINTING) lint:fix
 
-build_types:
-	$(RUN_LINTING_MONOREPO) --workspaces --if-present types:build
-
-typecheck: build_types
+typecheck:
 	$(RUN_LINTING) types:check
 
 test: format lint typecheck test_unit test_acceptance

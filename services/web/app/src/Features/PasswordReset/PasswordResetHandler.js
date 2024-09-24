@@ -5,7 +5,7 @@ const OneTimeTokenHandler = require('../Security/OneTimeTokenHandler')
 const EmailHandler = require('../Email/EmailHandler')
 const AuthenticationManager = require('../Authentication/AuthenticationManager')
 const { callbackify, promisify } = require('util')
-const { checkUserPermissions } =
+const { assertUserPermissions } =
   require('../Authorization/PermissionsManager').promises
 
 const AUDIT_LOG_TOKEN_PREFIX_LENGTH = 10
@@ -21,7 +21,7 @@ async function generateAndEmailResetToken(email) {
     return 'secondary'
   }
 
-  await checkUserPermissions(user, ['change-password'])
+  await assertUserPermissions(user, ['change-password'])
 
   const data = { user_id: user._id.toString(), email }
   const token = await OneTimeTokenHandler.promises.getNewToken('password', data)
@@ -71,6 +71,9 @@ async function getUserForPasswordResetToken(token) {
     'overleaf.id': 1,
     email: 1,
   })
+
+  await assertUserPermissions(user, ['change-password'])
+
   if (user == null) {
     return { user: null, remainingPeeks: 0 }
   } else if (data.user_id != null && data.user_id === user._id.toString()) {
